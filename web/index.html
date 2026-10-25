@@ -1,0 +1,189 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpaceSight // 空间探针</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23050a12'/%3E%3Cpath d='M16 4l10 6v12l-10 6-10-6V10z' fill='none' stroke='%2300f0ff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ff2bd6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+  <div class="bg-scan"></div>
+  <div class="bg-vignette"></div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><span class="sq"></span><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+    <div class="brand-text">
+      <h1 class="glitch" data-text="SPACESIGHT">SPACESIGHT</h1>
+      <p class="brand-sub">空间探针 <i>//</i> STORAGE CARTOGRAPHY</p>
+    </div>
+  </div>
+
+  <div class="topbar-metrics">
+    <div class="metric">
+      <label>已追踪占用</label>
+      <b id="metric-total" class="num">—</b>
+    </div>
+    <div class="metric">
+      <label>目标 / 文件</label>
+      <b id="metric-roots" class="num">0 <small>/ 0</small></b>
+    </div>
+    <div class="metric metric-disk">
+      <label>系统盘</label>
+      <b id="metric-disk" class="num">—</b>
+      <div class="disk-bar"><i id="disk-bar-fill" style="width:0%"></i></div>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <div class="watch-pill" id="watch-pill" title="后台察觉：注册表台账 / 安装进程 / 目录变更">
+      <span class="dot"></span><span id="watch-text">监控中</span>
+    </div>
+    <button class="btn btn-ghost" id="btn-audit" title="扫描指定目录，列出最大的文件与文件夹">✛ 大文件体检</button>
+    <button class="btn btn-primary" id="btn-add" title="把目录或文件加入追踪">＋ 添加追踪</button>
+    <button class="btn btn-quiet" id="btn-settings" title="设置与数据">⚙</button>
+    <button class="btn btn-quiet" id="btn-shutdown" title="关闭后台服务">⏻</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- ───────────────────────── 左：追踪目标 + 察觉日志 ───────────────────────── -->
+  <aside class="panel panel-left">
+    <div class="panel-head">
+      <span class="tick"></span>
+      <h2>追踪目标</h2>
+      <span class="head-count" id="root-count">0</span>
+      <button class="btn-mini" id="btn-rescan-all" title="重新扫描全部目标">↻ 全扫</button>
+    </div>
+    <div class="roots" id="roots-list"></div>
+    <div class="left-actions">
+      <button class="btn btn-block" id="btn-audit-2">◈ 快速体检：找出全盘大文件</button>
+      <button class="btn btn-block" id="btn-detect">✦ 立即侦查安装</button>
+    </div>
+    <div class="panel-head panel-head-sub">
+      <span class="tick tick-magenta"></span>
+      <h2>察觉日志</h2>
+      <button class="btn-mini" id="btn-clear-events">清空</button>
+    </div>
+    <div class="events" id="events-list"></div>
+  </aside>
+
+  <!-- ───────────────────────── 中：主视图 ───────────────────────── -->
+  <section class="panel panel-main">
+    <div class="panel-head">
+      <span class="tick"></span>
+      <nav class="tabs" id="view-tabs">
+        <button data-view="tree" class="active">目录树</button>
+        <button data-view="treemap">矩形图</button>
+        <button data-view="apps">安装台账</button>
+      </nav>
+      <div class="head-tools">
+        <div class="search">
+          <span class="search-icon">⌕</span>
+          <input id="search-input" type="text" placeholder="搜索名称 / 路径…" autocomplete="off" spellcheck="false">
+          <kbd>/</kbd>
+          <div class="search-results" id="search-results"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="thr">
+        <span class="thr-label">阈值</span>
+        <input type="range" id="thr-slider" min="0" max="1000" step="1" value="500">
+        <output id="thr-value" class="num">100 MB</output>
+        <div class="presets" id="thr-presets">
+          <button data-v="10485760">10M</button>
+          <button data-v="104857600" class="on">100M</button>
+          <button data-v="524288000">500M</button>
+          <button data-v="1073741824">1G</button>
+          <button data-v="5368709120">5G</button>
+        </div>
+      </div>
+      <div class="tool-btns">
+        <button class="btn-mini" id="btn-expand" title="自动展开两层">⊞ 展开</button>
+        <button class="btn-mini" id="btn-collapse" title="全部收起">⊟ 收起</button>
+        <span class="hint" id="hidden-hint"></span>
+      </div>
+    </div>
+
+    <div class="views" id="views">
+      <div class="tree-wrap" id="tree-wrap">
+        <div class="tree-head">
+          <span>名称</span><span class="th-bar">相对占比</span><span class="th-size">大小</span>
+        </div>
+        <div class="tree" id="tree"></div>
+      </div>
+
+      <div class="treemap-wrap hidden" id="treemap-wrap">
+        <div class="crumb" id="tm-crumb"></div>
+        <div class="treemap" id="treemap"></div>
+        <div class="tm-legend" id="tm-legend"></div>
+      </div>
+
+      <div class="apps-wrap hidden" id="apps-wrap">
+        <div class="apps-toolbar">
+          <input id="apps-search" type="text" placeholder="筛选安装台账：名称 / 路径" autocomplete="off">
+          <label class="chk"><input type="checkbox" id="apps-tracked"> 只看已追踪</label>
+          <span class="hint" id="apps-count"></span>
+          <button class="btn-mini" id="apps-clear-new">清除 NEW 标记</button>
+        </div>
+        <div class="apps" id="apps-list"></div>
+      </div>
+
+      <div class="empty" id="empty-state">
+        <div class="scanner-ring"><span></span><span></span><span></span></div>
+        <p class="empty-kicker">SYSTEM READY // NO TARGET</p>
+        <h2>你的磁盘空间，<br>正在被谁吃掉？</h2>
+        <p class="empty-copy">SpaceSight 记录每一次安装与解压的落点。选一个目录开始测绘，<br>之后每次装游戏、下大文件，它都会自己发现并记账。</p>
+        <div class="empty-actions">
+          <button class="btn btn-primary" id="empty-add">＋ 选择目录开始扫描</button>
+          <button class="btn btn-ghost" id="empty-programfiles">直接扫描 Program Files</button>
+          <button class="btn btn-ghost" id="empty-audit">先做一次大文件体检</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 右：节点详情 / 备注 ───────────────────────── -->
+  <aside class="panel panel-right" id="inspector">
+    <div class="panel-head">
+      <span class="tick tick-magenta"></span>
+      <h2>节点检视</h2>
+      <span class="head-count" id="inspect-kind"></span>
+    </div>
+    <div class="inspect" id="inspect-body">
+      <div class="inspect-empty">
+        <div class="crosshair">◎</div>
+        <p>在左侧树或矩形图中选择一个节点<br>查看占用详情并添加标注</p>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="statusbar">
+  <div class="status-left">
+    <span class="led" id="led"></span>
+    <span id="status-msg">正在连接核心…</span>
+  </div>
+  <div class="status-right">
+    <div class="jobbar" id="jobbar"><i id="jobbar-fill"></i></div>
+    <span class="mono" id="status-job"></span>
+    <span class="mono dim" id="clock">--:--:--</span>
+  </div>
+</footer>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="modal-backdrop" id="modal" aria-hidden="true">
+  <div class="modal" id="modal-box" role="dialog" aria-modal="true"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
