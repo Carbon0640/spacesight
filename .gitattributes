@@ -1,0 +1,11 @@
+# 统一换行符，避免在不同系统上把整个仓库标记为已修改
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF
+*.bat text eol=crlf
+
+# 二进制资源
+*.png binary
+*.ico binary
+*.jpg binary
+*.webp binary
